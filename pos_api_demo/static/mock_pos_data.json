@@ -1,0 +1,95 @@
+{
+    "ok": true,
+    "rows": [
+        {
+            "id": 1001,
+            "total": 15350.00,
+            "amount_tax": 700.00,
+            "amount_untaxed": 14650.00,
+            "invoice_partner_display_name": "Nasa Bangkok Hotel",
+            "seq_prefix": "POS",
+            "account_move_name": "POS-DT260201",
+            "date": "2026-02-01",
+            "invoice_date_due": "2026-02-10",
+            "lines": [
+                {
+                    "account_id": 513,
+                    "debit": 5350.00,
+                    "credit": 0.00,
+                    "analytic_discount": "LOCO",
+                    "move_id": 10010102,
+                    "line_invoice_date_due": "2026-02-10"
+                },
+                {
+                    "account_id": 514,
+                    "debit": 5350.00,
+                    "credit": 0.00,
+                    "analytic_discount": "LOCO",
+                    "move_id": 10010103,
+                    "line_invoice_date_due": "2026-02-10"
+                },
+                {
+                    "account_id": 716,
+                    "debit": 0.00,
+                    "credit": 700.00,
+                    "analytic_discount": "LOCO",
+                    "move_id": 10010104,
+                    "line_invoice_date_due": "2026-02-10"
+                },
+                {
+                    "account_id": 824,
+                    "debit": 0.00,
+                    "credit": 10000.00,
+                    "analytic_discount": "LOCO",
+                    "move_id": 10010105,
+                    "line_invoice_date_due": "2026-02-10"
+                }
+            ]
+        },
+        {
+            "id": 1002,
+            "total": 19560.00,
+            "amount_tax": 1279.63,
+            "amount_untaxed": 18280.37,
+            "invoice_partner_display_name": "บริษัท เอบีซี จำกัด",
+            "seq_prefix": "POS",
+            "account_move_name": "POS-DT260202",
+            "date": "2026-02-01",
+            "invoice_date_due": "2026-02-15",
+            "lines": [
+                {
+                    "account_id": 153,
+                    "debit": 11070.00,
+                    "credit": 0.00,
+                    "analytic_discount": "LOCO",
+                    "move_id": 11010102,
+                    "line_invoice_date_due": "2026-02-15"
+                },
+                {
+                    "account_id": 514,
+                    "debit": 8490.00,
+                    "credit": 0.00,
+                    "analytic_discount": "LOCO",
+                    "move_id": 11010201,
+                    "line_invoice_date_due": "2026-02-15"
+                },
+                {
+                    "account_id": 716,
+                    "debit": 0.00,
+                    "credit": 18280.37,
+                    "analytic_discount": "LOCO",
+                    "move_id": 231000,
+                    "line_invoice_date_due": "2026-02-15"
+                },
+                {
+                    "account_id": 824,
+                    "debit": 0.00,
+                    "credit": 1279.63,
+                    "analytic_discount": "LOCO",
+                    "move_id": 41020200,
+                    "line_invoice_date_due": "2026-02-15"
+                }
+            ]
+        }
+    ]
+}

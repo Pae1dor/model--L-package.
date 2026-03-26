@@ -1,0 +1,261 @@
+﻿{
+    "info": {
+        "_postman_id": "odoo-pos-api-collection",
+        "name": "Odoo POS API Service",
+        "description": "API สำหรับเชื่อมต่อระบบ POS กับ Odoo Account Move (Entry)",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Master Data (Dropdowns)",
+            "item": [
+                {
+                    "name": "Get Partners",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/pos/partners",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "pos",
+                                "partners"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Analytics",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/pos/analytics",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "pos",
+                                "analytics"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get Projects",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/pos/projects",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "pos",
+                                "projects"
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "POS Transactions",
+            "item": [
+                {
+                    "name": "Add POS (Cash + QR)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"params\": {\n        \"cash\": 107.00,\n        \"qr\": 214.00,\n        \"date\": \"2024-05-20\",\n        \"journal_id\": 1,\n        \"partner_id\": null,\n        \"analytic_account_id\": null\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/pos/addpos",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "pos",
+                                "addpos"
+                            ]
+                        },
+                        "description": "สร้าง Journal Entry อัตโนมัติ โดยคำนวณ VAT 7% และรายได้ให้อัตโนมัติจากยอด Cash และ QR"
+                    }
+                },
+                {
+                    "name": "Validate POS (Dry-run)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"params\": {\n        \"cash\": 100.00,\n        \"qr\": 50.00\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/pos/validate",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "pos",
+                                "validate"
+                            ]
+                        },
+                        "description": "ทดสอบคำนวณยอด Debit/Credit และ VAT โดยไม่มีการบันทึกข้อมูลลงฐานข้อมูล"
+                    }
+                },
+                {
+                    "name": "List POS Entries",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{base_url}}/api/pos/list?q=POS",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "pos",
+                                "list"
+                            ],
+                            "query": [
+                                {
+                                    "key": "q",
+                                    "value": "POS",
+                                    "description": "ค้นหาจากชื่อ หรือ ชื่อคู่ค้า"
+                                }
+                            ]
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Legacy / Manual Forms",
+            "item": [
+                {
+                    "name": "Add POS (Manual JSON)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"params\": {\n        \"date\": \"2024-05-20\",\n        \"journal_id\": 1,\n        \"lines\": [\n            {\n                \"account_id\": 513,\n                \"debit\": 100.0,\n                \"credit\": 0.0,\n                \"name\": \"Manual Entry\"\n            },\n            {\n                \"account_id\": 824,\n                \"debit\": 0.0,\n                \"credit\": 100.0,\n                \"name\": \"Revenue\"\n            }\n        ]\n    }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/pos/add",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "pos",
+                                "add"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Add POS (Form Data)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "date",
+                                    "value": "2024-05-20",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "journal_id",
+                                    "value": "1",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "cash_pos_amount",
+                                    "value": "100.00",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "bank_amount",
+                                    "value": "50.00",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "tax_amount",
+                                    "value": "10.50",
+                                    "type": "text"
+                                },
+                                {
+                                    "key": "parking_income",
+                                    "value": "139.50",
+                                    "type": "text"
+                                }
+                            ]
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/pos/addform",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "pos",
+                                "addform"
+                            ]
+                        }
+                    }
+                }
+            ]
+        }
+    ],
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
+                "type": "text/javascript",
+                "exec": [
+                    "// คุณสามารถกำหนดค่า Variable หลักที่นี่ หรือใน Environment",
+                    "if (!pm.environment.get('base_url')) {",
+                    "    pm.environment.set('base_url', 'http://192.168.1.43:8069');",
+                    "}"
+                ]
+            }
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://192.168.1.43:8069",
+            "type": "string"
+        }
+    ]
+}

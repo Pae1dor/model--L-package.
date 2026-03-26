@@ -1,0 +1,12 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_asset_management,asset.management,model_asset_management,assets_user_group,1,1,1,1
+access_asset_transfer_entry_user,asset.transfer.entry.user,model_asset_transfer_entry,transfer_user_group,1,1,1,1
+access_asset_maintenance_entry_user,asset.maintenance.entry.user,model_asset_maintenance_entry,maintenance_user_group,1,1,1,1
+access_asset_depreciation_entry_user,asset.depreciation.entry.user,model_asset_depreciation_entry,depreciation_user_group,1,1,1,1
+access_asset_vendor,asset.vendor,model_asset_vendor,vendor_user_group,1,1,1,1
+access_asset_type_user,asset.type.user,model_asset_type,assets_user_group,1,1,1,1
+access_asset_tag_user,asset.tag.user,model_asset_tag,assets_user_group,1,0,0,0
+access_asset_tag_admin,asset.tag.admin,model_asset_tag,assets_admin_group,1,1,1,1
+access_asset_tag_system,asset.tag.system,model_asset_tag,base.group_system,1,1,1,1
+access_asset_stock_movement_report_user,asset.stock.movement.report.user,model_asset_stock_movement_report,assets_user_group,1,0,0,0
+access_asset_stock_movement_report_admin,asset.stock.movement.report.admin,model_asset_stock_movement_report,assets_admin_group,1,0,0,0

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Monitor Dashboard - React + Tailwind</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            animation: spin 0.6s linear infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-950 via-teal-950 to-slate-900 min-h-screen font-sans text-gray-200">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+        const DEFAULT_API = window.location.origin.includes('localhost') ? "http://localhost:8069" : window.location.origin;
+
+        // ==================== Add Form ====================
+        function PosAddForm({ apiBase, onEntryAdded }) {
+            const getToday = () => {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            };
+
+            const [formData, setFormData] = useState({
+                cash: "",
+                qr: "",
+                date: getToday(),
+                partner_id: "",
+                analytic_account_id: ""
+            });
+            const [loading, setLoading] = useState(false);
+            const [message, setMessage] = useState(null);
+
+            const [partners, setPartners] = useState([]);
+            const [analytics, setAnalytics] = useState([]);
+
+            useEffect(() => {
+                const fetchDropdowns = async () => {
+                    try {
+                        const [pRes, aRes] = await Promise.all([
+                            fetch(`${apiBase}/api/pos/partners`),
+                            fetch(`${apiBase}/api/pos/projects`)
+                        ]);
+                        if (pRes.ok) {
+                            const pData = await pRes.json();
+                            if (pData.ok) setPartners(pData.partners);
+                        }
+                        if (aRes.ok) {
+                            const aData = await aRes.json();
+                            if (aData.ok) setAnalytics(aData.projects);
+                        }
+                    } catch (e) {
+                        console.error("Failed to fetch dropdown options:", e);
+                    }
+                };
+                fetchDropdowns();
+            }, [apiBase]);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                setMessage(null);
+
+                const payload = {
+                    params: {
+                        cash: parseFloat(formData.cash || 0),
+                        qr: parseFloat(formData.qr || 0),
+                        date: formData.date,
+                        journal_id: 1, // Defaulting to 1 based on backend
+                        partner_id: formData.partner_id ? parseInt(formData.partner_id, 10) : null,
+                        analytic_account_id: formData.analytic_account_id ? parseInt(formData.analytic_account_id, 10) : null
+                    }
+                };
+
+                try {
+                    const res = await fetch(`${apiBase}/api/pos/addpos`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!res.ok) throw new Error("HTTP " + res.status);
+
+                    const data = await res.json();
+                    if (data.result && data.result.ok) {
+                        setMessage({ type: "success", text: `Success! Created Move: ${data.result.move_name || data.result.move_id}` });
+                        setFormData({ ...formData, cash: "", qr: "" }); // reset amounts only
+                        if (onEntryAdded) onEntryAdded();
+                    } else if (data.result && data.result.error) {
+                        setMessage({ type: "error", text: data.result.error });
+                    } else if (data.error) {
+                        setMessage({ type: "error", text: data.error.data?.message || data.error.message || "Unknown Odoo Error" });
+                    } else {
+                        setMessage({ type: "error", text: "Invalid response from server" });
+                    }
+                } catch (err) {
+                    setMessage({ type: "error", text: "Failed: " + err.message });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-7 backdrop-blur-md shadow-2xl mb-8">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-white mb-6 flex items-center gap-2">
+                        <span>➕</span> Create New GL Entry
+                    </h2>
+
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            {/* Amounts */}
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">Cash (เงินสด) ฿</label>
+                                <input type="number" step="0.01" required value={formData.cash} onChange={e => setFormData({ ...formData, cash: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-emerald-400 font-mono text-lg outline-none focus:border-teal-500 focus:bg-white/10 transition-all placeholder-emerald-900/50"
+                                    placeholder="0.00" />
+                            </div>
+                            <div>
+                                <label className="block text-sm text-gray-400 mb-1">QR/Transfer (เงินโอน) ฿</label>
+                                <input type="number" step="0.01" required value={formData.qr} onChange={e => setFormData({ ...formData, qr: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-emerald-400 font-mono text-lg outline-none focus:border-teal-500 focus:bg-white/10 transition-all placeholder-emerald-900/50"
+                                    placeholder="0.00" />
+                            </div>
+
+                            {/* Configuration */}
+                            <div className="relative">
+                                <label className="block text-sm text-gray-400 mb-1">Partner (รายได้ค่าจอด)</label>
+                                <select
+                                    value={formData.partner_id} onChange={e => setFormData({ ...formData, partner_id: e.target.value })}
+                                    className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white outline-none focus:border-teal-500 focus:bg-white/10 transition-all appearance-none cursor-pointer">
+                                    <option value="" className="bg-slate-900 text-gray-500">-- Select Partner (Optional) --</option>
+                                    {partners.map(p => (
+                                        <option key={p.id} value={p.id} className="bg-slate-900 text-white">[{p.id}] {p.display_name}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 mt-7 flex items-center px-4 pointer-events-none text-gray-400">
+                                    ▼
+                                </div>
+                            </div>
+                            <div className="relative">
+                                <label className="block text-sm text-gray-400 mb-1">Analytic Account / Project</label>
+                                <select
+                                    value={formData.analytic_account_id} onChange={e => setFormData({ ...formData, analytic_account_id: e.target.value })}
+                                    className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white outline-none focus:border-teal-500 focus:bg-white/10 transition-all appearance-none cursor-pointer">
+                                    <option value="" className="bg-slate-900 text-gray-500">-- Select Project (Optional) --</option>
+                                    {analytics.map(a => (
+                                        <option key={a.id} value={a.analytic_account_id} className="bg-slate-900 text-white">[{a.id}] {a.name}</option>
+                                    ))}
+                                </select>
+                                <div className="absolute inset-y-0 right-0 mt-7 flex items-center px-4 pointer-events-none text-gray-400">
+                                    ▼
+                                </div>
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <label className="block text-sm text-gray-400 mb-1">Date</label>
+                                <input type="date" required value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white outline-none focus:border-teal-500 focus:bg-white/10 transition-all" />
+                            </div>
+                        </div>
+
+                        {message && (
+                            <div className={`px-5 py-3 rounded-xl border flex items-center gap-3 ${message.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400'}`}>
+                                <span>{message.type === 'success' ? '✅' : '❌'}</span>
+                                {message.text}
+                            </div>
+                        )}
+
+                        <button type="submit" disabled={loading || (!formData.cash && !formData.qr)}
+                            className="mt-2 py-4 w-full bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
+                            {loading ? <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full spinner" /> : "🚀 POST to General Ledger"}
+                        </button>
+                    </form>
+                </div>
+            );
+        }
+
+        function PosList({ apiBase, refreshTrigger }) {
+            const [moves, setMoves] = useState([]);
+            const [search, setSearch] = useState("");
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState(null);
+
+            const fetchMoves = useCallback(async (q = "") => {
+                setLoading(true);
+                setError(null);
+                try {
+                    // Fetch real data from Odoo backend
+                    const url = q ? `${apiBase}/api/pos/list?q=${encodeURIComponent(q)}` : `${apiBase}/api/pos/list`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    if (data.ok) {
+                        setMoves(data.rows);
+                    } else {
+                        setError("API Error: " + (data.error || "Unknown"));
+                        if (data.trace) console.error("Traceback:\n", data.trace);
+                    }
+                } catch (err) {
+                    setError("Cannot connect to " + apiBase + " — " + err.message);
+                } finally {
+                    setLoading(false);
+                }
+            }, [apiBase]);
+
+            useEffect(() => { fetchMoves(); }, [fetchMoves, refreshTrigger]);
+
+            const getAccountLabel = (id) => {
+                const map = {
+                    513: "11010102 เงินสดPOS",
+                    514: "11010201 เงินฝากกระแสรายวัน ธ.ไทยพาณิชย์",
+                    716: "21060500 ภาษีขาย",
+                    824: "41020201 รายได้ค่าที่จอดรถ"
+                };
+                return map[id] || id;
+            };
+
+            const getAccountType = (id) => {
+                const map = { 513: "Dr.", 514: "Dr.", 716: "Cr.", 824: "Cr." };
+                return map[id] || "";
+            };
+
+            // Validation helper
+            const calcValidation = (lines) => {
+                if (!lines || lines.length === 0) return null;
+                const sumDebit = lines.reduce((s, l) => s + (l.debit || 0), 0);
+                const sumCredit = lines.reduce((s, l) => s + (l.credit || 0), 0);
+                const balanced = Math.abs(sumDebit - sumCredit) < 0.01;
+                const totalCredit = sumCredit;
+                const vatCalc = Math.round(totalCredit * 7 / 107 * 100) / 100;
+                const serviceCalc = Math.round((totalCredit - vatCalc) * 100) / 100;
+                // Find actual VAT & service from lines
+                const actualVat = lines.filter(l => l.account_id === 716).reduce((s, l) => s + l.credit, 0);
+                const actualService = lines.filter(l => l.account_id === 824).reduce((s, l) => s + l.credit, 0);
+                const vatMatch = Math.abs(vatCalc - actualVat) < 0.01;
+                const serviceMatch = Math.abs(serviceCalc - actualService) < 0.01;
+
+                return { sumDebit, sumCredit, balanced, totalCredit, vatCalc, serviceCalc, actualVat, actualService, vatMatch, serviceMatch };
+            };
+
+            const fmt = (v) => Number(v).toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            return (
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-7 backdrop-blur-md shadow-2xl">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl sm:text-2xl font-semibold text-white">📊 Recent POS Entries</h2>
+                        <button onClick={() => fetchMoves(search)} disabled={loading}
+                            className="bg-white/10 hover:bg-white/20 p-2 rounded-lg transition-colors border border-white/10">
+                            🔄
+                        </button>
+                    </div>
+
+                    {/* Search */}
+                    <div className="flex gap-3 mb-6">
+                        <input
+                            type="text"
+                            className="flex-1 px-4 py-3 bg-white/10 border border-white/15 rounded-xl text-white placeholder-gray-500 outline-none focus:border-teal-500 transition"
+                            placeholder="Search POS reference or name..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && fetchMoves(search)}
+                        />
+                        <button
+                            onClick={() => fetchMoves(search)}
+                            disabled={loading}
+                            className="px-6 py-3 bg-gradient-to-r from-teal-500 to-cyan-600 text-white font-semibold rounded-xl shadow-lg shadow-teal-500/30 hover:shadow-teal-500/50 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed hidden sm:block"
+                        >
+                            {loading ? <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full spinner" /> : "🔍 Search"}
+                        </button>
+                    </div>
+
+                    {error && (
+                        <div className="px-5 py-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 mb-6 flex items-center gap-3">
+                            <span className="text-xl">⚠️</span> {error}
+                        </div>
+                    )}
+
+                    {!loading && !error && moves.length === 0 ? (
+                        <div className="text-center py-20 text-gray-500 bg-black/20 rounded-xl border border-white/5">
+                            <div className="text-6xl mb-4">📭</div>
+                            <p className="text-lg">No POS documents found matching your criteria</p>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-5">
+                            {moves.map((move, i) => {
+                                const v = calcValidation(move.lines);
+                                return (
+                                    <div key={i} className="bg-gradient-to-br from-white/5 to-white-[0.02] border border-white/10 rounded-xl p-5 hover:border-white/20 transition-all pointer-events-auto">
+                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-1">
+                                                    <h3 className="text-xl font-bold tracking-tight text-white">
+                                                        {move.account_move_name || move.seq_prefix}
+                                                    </h3>
+                                                    <span className="px-2.5 py-1 rounded bg-teal-500/20 text-teal-300 text-xs font-semibold uppercase tracking-wider">
+                                                        {move.seq_prefix}
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-400 flex items-center gap-2">
+                                                    <span>📅 {move.date}</span>
+                                                    {move.invoice_partner_display_name && (
+                                                        <span className="px-2 py-0.5 bg-white/10 rounded ml-2">
+                                                            👤 {move.invoice_partner_display_name}
+                                                        </span>
+                                                    )}
+                                                </p>
+                                            </div>
+                                            <div className="text-left md:text-right bg-black/20 px-4 py-3 rounded-xl border border-white/5 md:bg-transparent md:border-transparent md:p-0">
+                                                <div className="text-emerald-400 font-bold text-2xl mb-1">
+                                                    ฿{Number(move.total).toLocaleString('en', { minimumFractionDigits: 2 })}
+                                                </div>
+                                                <div className="text-xs font-mono text-gray-400 flex flex-col md:items-end gap-1">
+                                                    <span>Untaxed: ฿{Number(move.amount_untaxed).toLocaleString()}</span>
+                                                    <span>Tax: ฿{Number(move.amount_tax).toLocaleString()}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="mt-2 bg-black/30 rounded-lg p-1 overflow-hidden">
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-sm">
+                                                    <thead>
+                                                        <tr className="text-left text-xs uppercase tracking-wider text-gray-500 bg-white/5">
+                                                            <th className="py-3 px-4 rounded-tl-lg">Account</th>
+                                                            <th className="py-3 px-4">Partner</th>
+                                                            <th className="py-3 px-4">Label</th>
+                                                            <th className="py-3 px-4">Analytic Distribution</th>
+                                                            <th className="py-3 px-4 text-right">Debit</th>
+                                                            <th className="py-3 px-4 text-right rounded-tr-lg">Credit</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-white/5">
+                                                        {move.lines && move.lines.map((line, j) => (
+                                                            <tr key={j} className="hover:bg-white/5 transition-colors">
+                                                                <td className="py-3 px-4 text-gray-300 font-mono text-xs">
+                                                                    {getAccountLabel(line.account_id)}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-gray-400 text-xs">
+                                                                    {line.partner_name || '-'}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-gray-300 text-xs">
+                                                                    {line.name}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-gray-400 text-xs">
+                                                                    <span className="bg-white/10 px-2 py-0.5 rounded text-indigo-300">{line.analytic_discount || '-'}</span>
+                                                                </td>
+                                                                <td className="py-3 px-4 text-right font-medium text-emerald-400">
+                                                                    {line.debit > 0 ? fmt(line.debit) : '-'}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-right font-medium text-rose-400">
+                                                                    {line.credit > 0 ? fmt(line.credit) : '-'}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                        {/* Totals Row */}
+                                                        {v && (
+                                                            <tr className="bg-white/5 border-t-2 border-white/20 font-semibold">
+                                                                <td className="py-3 px-4 text-white text-xs" colSpan="4">
+                                                                    Σ Total
+                                                                </td>
+                                                                <td className="py-3 px-4 text-right text-emerald-300 font-bold">
+                                                                    {fmt(v.sumDebit)}
+                                                                </td>
+                                                                <td className="py-3 px-4 text-right text-rose-300 font-bold">
+                                                                    {fmt(v.sumCredit)}
+                                                                </td>
+                                                            </tr>
+                                                        )}
+                                                        {(!move.lines || move.lines.length === 0) && (
+                                                            <tr>
+                                                                <td colSpan="6" className="text-center py-4 text-gray-500 italic">No specific lines found matching conditions.</td>
+                                                            </tr>
+                                                        )}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        {/* ── Validation Panel ── */}
+                                        {v && (
+                                            <div className="mt-4 bg-gradient-to-r from-black/40 to-black/20 rounded-xl border border-white/10 p-5">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <span className="text-lg">{v.balanced ? '✅' : '❌'}</span>
+                                                    <h4 className="text-sm font-bold text-white uppercase tracking-wider">Balance Check (ΣDebit = ΣCredit)</h4>
+                                                    <span className={`ml-auto px-3 py-1 rounded-full text-xs font-bold ${v.balanced ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+                                                        {v.balanced ? 'BALANCED' : 'UNBALANCED'}
+                                                    </span>
+                                                </div>
+                                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                    {/* Debit/Credit Summary */}
+                                                    <div className="bg-black/30 rounded-lg p-4 border border-white/5">
+                                                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">Summary</div>
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-gray-400 text-sm">ΣDebit</span>
+                                                            <span className="text-emerald-400 font-bold font-mono">{fmt(v.sumDebit)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-gray-400 text-sm">ΣCredit</span>
+                                                            <span className="text-rose-400 font-bold font-mono">{fmt(v.sumCredit)}</span>
+                                                        </div>
+                                                        <div className="border-t border-white/10 pt-2 flex justify-between items-center">
+                                                            <span className="text-gray-400 text-sm">Diff</span>
+                                                            <span className={`font-bold font-mono ${v.balanced ? 'text-emerald-400' : 'text-red-400'}`}>{fmt(Math.abs(v.sumDebit - v.sumCredit))}</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* VAT Check */}
+                                                    <div className="bg-black/30 rounded-lg p-4 border border-white/5">
+                                                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">VAT Check (ΣCredit × 7/107)</div>
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-gray-400 text-sm">สูตร</span>
+                                                            <span className="text-cyan-400 font-mono text-xs">{fmt(v.sumDebit)} × 7/107</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-gray-400 text-sm">คำนวณ</span>
+                                                            <span className="text-white font-bold font-mono">{fmt(v.vatCalc)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-gray-400 text-sm">จริง</span>
+                                                            <span className="flex items-center gap-2">
+                                                                <span className="font-mono font-bold text-white">{fmt(v.actualVat)}</span>
+                                                                <span className={`text-xs ${v.vatMatch ? 'text-emerald-400' : 'text-red-400'}`}>{v.vatMatch ? '✓' : '✗'}</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Service Check */}
+                                                    <div className="bg-black/30 rounded-lg p-4 border border-white/5">
+                                                        <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">ค่าบริการ Check (ΣCredit × 100/107)</div>
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-gray-400 text-sm">สูตร</span>
+                                                            <span className="text-cyan-400 font-mono text-xs">{fmt(v.sumDebit)} × 100/107</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <span className="text-gray-400 text-sm">คำนวณ</span>
+                                                            <span className="text-white font-bold font-mono">{fmt(v.serviceCalc)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-gray-400 text-sm">จริง</span>
+                                                            <span className="flex items-center gap-2">
+                                                                <span className="font-mono font-bold text-white">{fmt(v.actualService)}</span>
+                                                                <span className={`text-xs ${v.serviceMatch ? 'text-emerald-400' : 'text-red-400'}`}>{v.serviceMatch ? '✓' : '✗'}</span>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+            )
+        }
+
+        // ==================== Main App ====================
+        function App() {
+            const [apiBase, setApiBase] = useState(DEFAULT_API);
+            const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+            return (
+                <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12">
+                    {/* Header */}
+                    <div className="text-center mb-10 sm:mb-12">
+                        <h1 className="text-3xl sm:text-5xl font-extrabold bg-gradient-to-r from-teal-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent mb-4 tracking-tight drop-shadow-sm">
+                            Odoo POS API Monitor
+                        </h1>
+                        <p className="text-gray-400 text-sm sm:text-base max-w-xl mx-auto">
+                            A dynamic dashboard analyzing your accounting journal entries sourced from the POS API Module.
+                        </p>
+                    </div>
+
+                    {/* Config Bar */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-8 p-4 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-md shadow-lg">
+                        <label className="text-sm text-gray-300 whitespace-nowrap pl-2 font-medium flex items-center gap-2">
+                            <span className="text-teal-400">🔗</span> API Server:
+                        </label>
+                        <input type="text" value={apiBase} onChange={(e) => setApiBase(e.target.value)}
+                            className="flex-1 px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-teal-500 focus:bg-white/10 transition-all font-mono"
+                            placeholder="http://localhost:8069" />
+                    </div>
+
+                    {/* Form & List Container */}
+                    <div className="w-full">
+                        <PosAddForm apiBase={apiBase} onEntryAdded={() => setRefreshTrigger(t => t + 1)} />
+                        {/* Content */}
+                        <PosList apiBase={apiBase} refreshTrigger={refreshTrigger} />
+                    </div>
+
+                    <div className="text-center mt-12 text-sm text-gray-500">
+                        Built for POS Accounting Monitoring
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+
+</html>

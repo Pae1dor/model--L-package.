@@ -1,0 +1,30 @@
+<odoo>
+    <!-- Sequence for Asset Code Generation -->
+    <record id="seq_asset_code" model="ir.sequence">
+        <field name="name">Asset Code</field>
+        <field name="code">asset.management</field>
+        <field name="prefix">ASSET/</field>
+        <field name="padding">5</field>
+    </record>
+
+    <!-- Sequence for Asset Transfer Code Generation -->
+    <record id="seq_asset_transfer_code" model="ir.sequence">
+        <field name="name">Asset Transfer Code</field>
+        <field name="code">asset.transfer.entry</field>
+        <field name="prefix">TRANSFER/</field>
+        <field name="padding">5</field>
+    </record>
+
+    <!-- Scheduled Action for Generating Depreciation Entries -->
+    <record id="ir_cron_generate_depreciation_entries" model="ir.cron">
+        <field name="name">Generate Asset Depreciation Entries</field>
+        <field name="model_id" ref="model_asset_management"/>
+        <field name="state">code</field>
+        <field name="code">model.generate_depreciation_entries()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="doall" eval="False"/>
+        <field name="active" eval="True"/>
+    </record>
+</odoo>
